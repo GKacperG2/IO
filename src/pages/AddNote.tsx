@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Plus } from 'lucide-react'
 
 export default function AddNote() {
   const navigate = useNavigate()
@@ -12,9 +12,13 @@ export default function AddNote() {
   const [subject, setSubject] = useState('')
   const [professor, setProfessor] = useState('')
   const [year, setYear] = useState('')
+  const [noteType, setNoteType] = useState<'file' | 'text'>('file')
   const [file, setFile] = useState<File | null>(null)
+  const [content, setContent] = useState('')
   const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>([])
   const [professors, setProfessors] = useState<Array<{ id: string; name: string }>>([])
+  const [newSubject, setNewSubject] = useState('')
+  const [newProfessor, setNewProfessor] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -31,27 +35,85 @@ export default function AddNote() {
     if (professorsData.data) setProfessors(professorsData.data)
   }
 
+  const handleAddSubject = async () => {
+    if (!newSubject.trim()) {
+      toast.error('Wprowadź nazwę przedmiotu')
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .insert([{ name: newSubject.trim() }])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setSubjects([...subjects, data])
+      setSubject(data.id)
+      setNewSubject('')
+      toast.success('Dodano nowy przedmiot')
+    } catch (error) {
+      toast.error('Nie udało się dodać przedmiotu')
+    }
+  }
+
+  const handleAddProfessor = async () => {
+    if (!newProfessor.trim()) {
+      toast.error('Wprowadź nazwę prowadzącego')
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('professors')
+        .insert([{ name: newProfessor.trim() }])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setProfessors([...professors, data])
+      setProfessor(data.id)
+      setNewProfessor('')
+      toast.success('Dodano nowego prowadzącego')
+    } catch (error) {
+      toast.error('Nie udało się dodać prowadzącego')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!file) {
+    if (noteType === 'file' && !file) {
       toast.error('Proszę wybrać plik')
+      return
+    }
+
+    if (noteType === 'text' && !content.trim()) {
+      toast.error('Proszę wprowadzić treść notatki')
       return
     }
 
     setLoading(true)
     try {
-      // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `${user?.id}/${fileName}`
+      let filePath = null
+      let fileType = noteType === 'text' ? 'text' : null
 
-      const { error: uploadError } = await supabase.storage
-        .from('notes')
-        .upload(filePath, file)
+      if (noteType === 'file' && file) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Math.random()}.${fileExt}`
+        filePath = `${user?.id}/${fileName}`
 
-      if (uploadError) throw uploadError
+        const { error: uploadError } = await supabase.storage
+          .from('notes')
+          .upload(filePath, file)
 
-      // Create note record in database
+        if (uploadError) throw uploadError
+
+        fileType = fileExt === 'pdf' ? 'pdf' : 'image'
+      }
+
       const { error: dbError } = await supabase.from('notes').insert([
         {
           title,
@@ -60,7 +122,8 @@ export default function AddNote() {
           year: parseInt(year),
           user_id: user?.id,
           file_path: filePath,
-          file_type: fileExt === 'pdf' ? 'pdf' : 'image'
+          file_type: fileType,
+          content: noteType === 'text' ? content : null
         }
       ])
 
@@ -103,36 +166,72 @@ export default function AddNote() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Przedmiot</label>
-              <select
-                required
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="">Wybierz przedmiot</option>
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1 flex gap-2">
+                <select
+                  required
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="">Wybierz przedmiot</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newSubject}
+                    onChange={(e) => setNewSubject(e.target.value)}
+                    placeholder="Nowy przedmiot"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSubject}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Prowadzący</label>
-              <select
-                required
-                value={professor}
-                onChange={(e) => setProfessor(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="">Wybierz prowadzącego</option>
-                {professors.map((professor) => (
-                  <option key={professor.id} value={professor.id}>
-                    {professor.name}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1 flex gap-2">
+                <select
+                  required
+                  value={professor}
+                  onChange={(e) => setProfessor(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="">Wybierz prowadzącego</option>
+                  {professors.map((professor) => (
+                    <option key={professor.id} value={professor.id}>
+                      {professor.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newProfessor}
+                    onChange={(e) => setNewProfessor(e.target.value)}
+                    placeholder="Nowy prowadzący"
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddProfessor}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -149,15 +248,55 @@ export default function AddNote() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Plik (PDF lub zdjęcie)</label>
-              <input
-                type="file"
-                required
-                accept=".pdf,image/*"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="mt-1 block w-full"
-              />
+              <label className="block text-sm font-medium text-gray-700">Typ notatki</label>
+              <div className="mt-1 space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    value="file"
+                    checked={noteType === 'file'}
+                    onChange={(e) => setNoteType(e.target.value as 'file')}
+                    className="form-radio text-indigo-600"
+                  />
+                  <span className="ml-2">Plik (PDF lub zdjęcie)</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    value="text"
+                    checked={noteType === 'text'}
+                    onChange={(e) => setNoteType(e.target.value as 'text')}
+                    className="form-radio text-indigo-600"
+                  />
+                  <span className="ml-2">Notatka tekstowa</span>
+                </label>
+              </div>
             </div>
+
+            {noteType === 'file' ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Plik (PDF lub zdjęcie)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="mt-1 block w-full"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Treść notatki</label>
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows={10}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Wprowadź treść notatki..."
+                />
+              </div>
+            )}
 
             <button
               type="submit"

@@ -8,8 +8,9 @@ import { ArrowLeft, Download, Star } from 'lucide-react'
 interface Note {
   id: string
   title: string
-  file_path: string
+  file_path: string | null
   file_type: string
+  content: string | null
   created_at: string
   user_profiles: {
     username: string
@@ -91,10 +92,15 @@ export default function ViewNote() {
   }
 
   const handleDownload = async () => {
+    if (!note?.file_path) {
+      toast.error('Ta notatka nie zawiera pliku do pobrania')
+      return
+    }
+
     try {
       const { data, error } = await supabase.storage
         .from('notes')
-        .download(note?.file_path || '')
+        .download(note.file_path)
 
       if (error) throw error
 
@@ -107,7 +113,7 @@ export default function ViewNote() {
       const url = window.URL.createObjectURL(data)
       const link = document.createElement('a')
       link.href = url
-      link.download = note?.title || 'note'
+      link.download = note.title || 'note'
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -167,13 +173,15 @@ export default function ViewNote() {
                   Dodane przez {note.user_profiles.username}
                 </p>
               </div>
-              <button
-                onClick={handleDownload}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Download className="w-5 h-5 mr-2" />
-                Pobierz
-              </button>
+              {note.file_path && (
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Pobierz
+                </button>
+              )}
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-4">
@@ -194,6 +202,17 @@ export default function ViewNote() {
                 <p className="font-medium">{note.download_count}</p>
               </div>
             </div>
+
+            {note.content && (
+              <div className="mt-8">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Treść notatki</h2>
+                <div className="prose max-w-none">
+                  <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded-lg">
+                    {note.content}
+                  </pre>
+                </div>
+              </div>
+            )}
 
             <div className="mt-8">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Oceń notatkę</h2>
