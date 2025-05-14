@@ -16,8 +16,10 @@ interface Note {
   professors: {
     name: string
   }
-  user_profiles: {
-    username: string
+  users: {
+    user_profiles: {
+      username: string
+    }
   }
   user_id: string
   file_type: string
@@ -41,7 +43,9 @@ function Home() {
           *,
           subjects (name),
           professors (name),
-          user_profiles!notes_user_id_fkey (username)
+          users (
+            user_profiles (username)
+          )
         `)
         .order('created_at', { ascending: false })
 
@@ -127,14 +131,14 @@ function Home() {
                     )}
                   </div>
                   <p className="text-sm text-gray-500 mt-2">
-                    Autor: {note.user_profiles.username}
+                    Autor: {note.users.user_profiles.username}
                   </p>
                   <div className="mt-4 space-y-2">
                     <p className="text-sm text-gray-600">
-                      Przedmiot: {note.subjects.name}
+                      Przedmiot: {note.subjects?.name}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Prowadzący: {note.professors.name}
+                      Prowadzący: {note.professors?.name}
                     </p>
                   </div>
                   <div className="mt-4 flex items-center justify-between">
