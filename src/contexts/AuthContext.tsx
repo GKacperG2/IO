@@ -35,22 +35,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, username: string) => {
-    const { data: { user }, error: signUpError } = await supabase.auth.signUp({ 
+    const { error } = await supabase.auth.signUp({ 
       email, 
       password,
       options: {
         data: { username }
       }
     })
-    if (signUpError) throw signUpError
-
-    if (user) {
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert([{ id: user.id, username }])
-      
-      if (profileError) throw profileError
-    }
+    if (error) throw error
   }
 
   const signOut = async () => {
