@@ -45,6 +45,7 @@ export default function ViewNote() {
   const [userRating, setUserRating] = useState(0)
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     fetchNoteAndRatings()
@@ -125,13 +126,19 @@ export default function ViewNote() {
     }
   }
 
-  const handleRating = async (stars: number) => {
+  const handleSubmitRating = async () => {
+    if (!userRating) {
+      toast.error('Wybierz ocenę przed zatwierdzeniem')
+      return
+    }
+
+    setSubmitting(true)
     try {
       const { error } = await supabase.from('ratings').upsert([
         {
           note_id: id,
           user_id: user?.id,
-          stars,
+          stars: userRating,
           comment
         }
       ])
@@ -139,9 +146,11 @@ export default function ViewNote() {
       if (error) throw error
 
       toast.success('Ocena została dodana')
-      fetchNoteAndRatings()
+      await fetchNoteAndRatings()
     } catch (error) {
       toast.error('Nie udało się dodać oceny')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -216,11 +225,11 @@ export default function ViewNote() {
 
             <div className="mt-8">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Oceń notatkę</h2>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
-                    onClick={() => handleRating(star)}
+                    onClick={() => setUserRating(star)}
                     className={`p-1 ${userRating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
                   >
                     <Star className="w-8 h-8" fill={userRating >= star ? 'currentColor' : 'none'} />
@@ -234,6 +243,13 @@ export default function ViewNote() {
                 className="mt-4 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 rows={3}
               />
+              <button
+                onClick={handleSubmitRating}
+                disabled={submitting || !userRating}
+                className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              >
+                {submitting ? 'Zapisywanie...' : 'Zatwierdź ocenę'}
+              </button>
             </div>
 
             <div className="mt-8">

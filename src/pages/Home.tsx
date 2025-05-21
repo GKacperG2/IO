@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { PlusCircle, Trash2, Download } from 'lucide-react'
+import { PlusCircle, Trash2, Star } from 'lucide-react'
 import UserMenu from '../components/UserMenu'
 import { supabase } from '../lib/supabase'
 import { toast } from 'sonner'
@@ -22,12 +22,14 @@ interface Note {
   user_id: string
   file_type: string
   content: string | null
+  average_rating: number
 }
 
 function Home() {
   const { user } = useAuth()
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchNotes()
@@ -109,17 +111,22 @@ function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {notes.map((note) => (
-              <div key={note.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div
+                key={note.id}
+                onClick={() => navigate(`/notes/${note.id}`)}
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              >
                 <div className="p-6">
                   <div className="flex justify-between items-start">
-                    <Link to={`/notes/${note.id}`} className="block flex-1">
-                      <h2 className="text-xl font-semibold text-gray-900 hover:text-blue-600">
-                        {note.title}
-                      </h2>
-                    </Link>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {note.title}
+                    </h2>
                     {note.user_id === user?.id && (
                       <button
-                        onClick={() => handleDelete(note.id, note.user_id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(note.id, note.user_id)
+                        }}
                         className="text-red-500 hover:text-red-700 ml-2"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -141,9 +148,23 @@ function Home() {
                     <span className="text-sm text-gray-500">
                       {new Date(note.created_at).toLocaleDateString()}
                     </span>
-                    <span className="text-sm font-medium text-blue-600">
-                      {note.file_type === 'text' ? 'Notatka tekstowa' : note.file_type.toUpperCase()}
-                    </span>
+                    <div className="flex items-center">
+                      <div className="flex items-center mr-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-4 h-4 ${
+                              star <= Math.round(note.average_rating || 0)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-blue-600">
+                        {note.file_type === 'text' ? 'Notatka tekstowa' : note.file_type.toUpperCase()}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
