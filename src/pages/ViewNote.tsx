@@ -30,8 +30,10 @@ interface Rating {
   id: string
   stars: number
   comment: string
-  user_profiles: {
-    username: string
+  user: {
+    user_profiles: {
+      username: string
+    }
   }
   created_at: string
 }
@@ -70,8 +72,15 @@ export default function ViewNote() {
       const { data: ratingsData, error: ratingsError } = await supabase
         .from('ratings')
         .select(`
-          *,
-          user_profiles (username)
+          id,
+          stars,
+          comment,
+          created_at,
+          user:user_id (
+            user_profiles (
+              username
+            )
+          )
         `)
         .eq('note_id', id)
         .order('created_at', { ascending: false })
@@ -264,7 +273,7 @@ export default function ViewNote() {
                         ))}
                       </div>
                       <span className="ml-2 text-sm text-gray-500">
-                        przez {rating.user_profiles.username}
+                        przez {rating.user.user_profiles.username}
                       </span>
                     </div>
                     {rating.comment && (
