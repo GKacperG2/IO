@@ -71,7 +71,7 @@ export default function ViewNote() {
         .from('ratings')
         .select(`
           *,
-          user_profiles!ratings_user_id_fkey (username)
+          user_profiles (username)
         `)
         .eq('note_id', id)
         .order('created_at', { ascending: false })
