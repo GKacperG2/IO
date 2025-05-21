@@ -43,7 +43,7 @@ function Home() {
           *,
           subjects (name),
           professors (name),
-          user:user_id (
+          user:users (
             user_profiles (username)
           )
         `)
