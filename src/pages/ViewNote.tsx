@@ -30,6 +30,7 @@ interface Rating {
   id: string
   stars: number
   comment: string
+  user_id: string
   user_profiles: {
     username: string
   }
@@ -46,6 +47,7 @@ export default function ViewNote() {
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [existingRatingId, setExistingRatingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchNoteAndRatings()
@@ -73,6 +75,7 @@ export default function ViewNote() {
           id,
           stars,
           comment,
+          user_id,
           created_at,
           user_profiles (
             username
@@ -89,6 +92,11 @@ export default function ViewNote() {
       if (userRating) {
         setUserRating(userRating.stars)
         setComment(userRating.comment || '')
+        setExistingRatingId(userRating.id)
+      } else {
+        setUserRating(0)
+        setComment('')
+        setExistingRatingId(null)
       }
     } catch (error) {
       toast.error('Nie udało się załadować notatki')
@@ -139,18 +147,34 @@ export default function ViewNote() {
 
     setSubmitting(true)
     try {
-      const { error } = await supabase.from('ratings').upsert([
-        {
-          note_id: id,
-          user_id: user?.id,
-          stars: userRating,
-          comment
-        }
-      ])
+      let error
+      
+      if (existingRatingId) {
+        // Update existing rating
+        const { error: updateError } = await supabase
+          .from('ratings')
+          .update({
+            stars: userRating,
+            comment
+          })
+          .eq('id', existingRatingId)
+        error = updateError
+      } else {
+        // Insert new rating
+        const { error: insertError } = await supabase
+          .from('ratings')
+          .insert([{
+            note_id: id,
+            user_id: user?.id,
+            stars: userRating,
+            comment
+          }])
+        error = insertError
+      }
 
       if (error) throw error
 
-      toast.success('Ocena została dodana')
+      toast.success(existingRatingId ? 'Ocena została zaktualizowana' : 'Ocena została dodana')
       await fetchNoteAndRatings()
     } catch (error) {
       toast.error('Nie udało się dodać oceny')
@@ -229,7 +253,9 @@ export default function ViewNote() {
             )}
 
             <div className="mt-8">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Oceń notatkę</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                {existingRatingId ? 'Edytuj swoją ocenę' : 'Oceń notatkę'}
+              </h2>
               <div className="flex items-center space-x-2 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -253,7 +279,7 @@ export default function ViewNote() {
                 disabled={submitting || !userRating}
                 className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {submitting ? 'Zapisywanie...' : 'Zatwierdź ocenę'}
+                {submitting ? 'Zapisywanie...' : (existingRatingId ? 'Aktualizuj ocenę' : 'Zatwierdź ocenę')}
               </button>
             </div>
 
