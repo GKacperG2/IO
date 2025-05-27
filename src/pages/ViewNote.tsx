@@ -30,10 +30,8 @@ interface Rating {
   id: string
   stars: number
   comment: string
-  user: {
-    user_profiles: {
-      username: string
-    }
+  user_profiles: {
+    username: string
   }
   created_at: string
 }
@@ -76,10 +74,8 @@ export default function ViewNote() {
           stars,
           comment,
           created_at,
-          user:user_id (
-            user_profiles (
-              username
-            )
+          user_profiles (
+            username
           )
         `)
         .eq('note_id', id)
@@ -273,7 +269,7 @@ export default function ViewNote() {
                         ))}
                       </div>
                       <span className="ml-2 text-sm text-gray-500">
-                        przez {rating.user.user_profiles.username}
+                        przez {rating.user_profiles.username}
                       </span>
                     </div>
                     {rating.comment && (
