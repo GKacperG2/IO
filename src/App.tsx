@@ -7,6 +7,7 @@ import Register from './pages/Register'
 import Home from './pages/Home'
 import AddNote from './pages/AddNote'
 import ViewNote from './pages/ViewNote'
+import Settings from './pages/Settings'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
@@ -49,6 +50,11 @@ function App() {
                 <ViewNote />
               </PrivateRoute>
             } />
+            <Route path="/settings" element={
+              <PrivateRoute>
+                <Settings />
+              </PrivateRoute>
+            } />
           </Routes>
           <Toaster position="top-center" />
         </div>
@@ -56,5 +62,3 @@ function App() {
     </AuthProvider>
   )
 }
-
-export default App

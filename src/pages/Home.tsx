@@ -18,6 +18,8 @@ interface Note {
   }
   user_profiles: {
     username: string
+    university: string | null
+    major: string | null
   }
   user_id: string
   file_type: string
@@ -43,7 +45,7 @@ function Home() {
           *,
           subjects (name),
           professors (name),
-          user_profiles (username)
+          user_profiles (username, university, major)
         `)
         .order('created_at', { ascending: false })
 
@@ -135,6 +137,12 @@ function Home() {
                   </div>
                   <p className="text-sm text-gray-500 mt-2">
                     Autor: {note.user_profiles.username}
+                    {note.user_profiles.university && (
+                      <span className="block text-xs text-gray-400">
+                        {note.user_profiles.university}
+                        {note.user_profiles.major && ` - ${note.user_profiles.major}`}
+                      </span>
+                    )}
                   </p>
                   <div className="mt-4 space-y-2">
                     <p className="text-sm text-gray-600">
@@ -175,5 +183,3 @@ function Home() {
     </div>
   )
 }
-
-export default Home
