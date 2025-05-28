@@ -14,6 +14,8 @@ interface Note {
   created_at: string
   user_profiles: {
     username: string
+    university: string | null
+    major: string | null
   }
   subjects: {
     name: string
@@ -59,7 +61,7 @@ export default function ViewNote() {
         .from('notes')
         .select(`
           *,
-          user_profiles (username),
+          user_profiles (username, university, major),
           subjects (name),
           professors (name)
         `)
@@ -209,6 +211,12 @@ export default function ViewNote() {
                 <h1 className="text-2xl font-bold text-gray-900">{note.title}</h1>
                 <p className="text-gray-500 mt-2">
                   Dodane przez {note.user_profiles.username}
+                  {note.user_profiles.university && (
+                    <span className="block text-sm text-gray-400">
+                      {note.user_profiles.university}
+                      {note.user_profiles.major && ` - ${note.user_profiles.major}`}
+                    </span>
+                  )}
                 </p>
               </div>
               {note.file_path && (
